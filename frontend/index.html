@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Bảng điều khiển Sức khỏe</title>
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css" rel="stylesheet" />
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .page-wrapper {
+            flex-grow: 1;
+        }
+
+        .card.hoverable {
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .card.hoverable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #eee 25%, #f7f7f7 37%, #eee 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.2s ease-in-out infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn .25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* Overlay skeleton và chart cùng 1 khung, tránh đẩy nhau */
+        .chart-holder {
+            position: relative;
+            min-height: 350px;
+        }
+
+        .chart-holder .skeleton {
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+        }
+
+        .chart-holder #chart-health-metrics {
+            position: absolute;
+            inset: 0;
+            display: none;
+        }
+
+        /* (tuỳ chọn) card hover */
+        .card.hoverable {
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .card.hoverable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+        }
+
+        @media (min-width: 992px) {
+            .sidebar-sticky {
+                position: sticky;
+                top: 6rem;
+            }
+        }
+
+        #goals-display {
+            min-height: 1.25rem;
+        }
+
+        .form-check-input {
+            cursor: pointer;
+        }
+
+        #notif-time-label {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Hộp nhắc hằng ngày — layout gọn, canh giữa tuyệt đối */
+        .notif-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fbff;
+            border: 1px solid #e8f2ff;
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .notif-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notif-text .small {
+            line-height: 1;
+        }
+
+        /* dòng “Giờ: …” gọn hơn */
+        /* Thu nhỏ và canh giữa switch */
+        .form-switch {
+            margin: 0;
+            padding: 0;
+        }
+
+        .form-switch .form-check-input {
+            width: 2.25rem;
+            height: 1.25rem;
+            /* “size nhỏ” */
+            margin: 0;
+            vertical-align: middle;
+            /* bỏ lệch mặc định */
+        }
+
+        .form-check-input {
+            cursor: pointer;
+        }
+
+        /* UX tốt hơn */
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <header class="navbar navbar-expand-md d-print-none">
+            <div class="container-xl">
+                <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart-rate-monitor"
+                        width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path d="M3 4m0 1a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1z" />
+                        <path d="M7 20h10" />
+                        <path d="M9 16v4" />
+                        <path d="M15 16v4" />
+                        <path d="M7 12h3l1.5 -2l3 4l1.5 -2h3" />
+                    </svg>
+                    Theo dõi Sức khỏe
+                </h1>
+            </div>
+            <!-- Profile dropdown (giả lập avatar) -->
+            <div class="navbar-nav flex-row order-md-last">
+                <div class="nav-item dropdown">
+                    <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown"
+                        aria-label="Open user menu">
+                        <span class="avatar avatar-sm"
+                            style="background:linear-gradient(135deg,#82caff,#6fe3f7); display:inline-flex; align-items:center; justify-content:center; font-weight:700;">
+                            <span id="avatar-initial">U</span>
+                        </span>
+                        <div class="d-none d-xl-block ps-2">
+                            <div id="user-fullname">User</div>
+                            <div class="mt-1 small text-secondary" id="user-email">you@example.com</div>
+                        </div>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                        <a class="dropdown-item" href="#" id="btn-export-csv">Tải CSV</a>
+                        <a class="dropdown-item" href="#" id="btn-change-password">Đổi mật khẩu</a>
+                        <div class="form-check form-switch ms-auto" style="width: 160px;">
+                            <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                            <label class="form-check-label" for="darkModeToggle">🌙Dark Mode</label>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#" id="btn-logout">Đăng xuất</a>
+
+                    </div>
+                </div>
+            </div>
+
+        </header>
+        <style>
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            body.dark {
+                background-color: #121212;
+                color: #e0e0e0;
+            }
+
+            body.dark table,
+            body.dark .card,
+            body.dark .form-control {
+                background-color: #1e1e1e !important;
+                color: #e0e0e0 !important;
+            }
+
+            body.dark .btn-danger {
+                background-color: #b00020;
+            }
+
+            body.dark input,
+            body.dark select,
+            body.dark textarea {
+                background-color: #2c2c2c;
+                color: white;
+            }
+        </style>
+
+        <div class="col-12">
+            <div class="row row-cards">
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card card-sm">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <span class="bg-primary text-white avatar">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="icon icon-tabler icon-tabler-weight" width="24" height="24"
+                                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                            <path d="M12 5m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+                                            <path d="M6.803 14.002a6 6 0 1 0 10.396 0" />
+                                            <path d="M12 5v15" />
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="col">
+                                    <div class="font-weight-medium">
+                                        Cân nặng mới nhất
+                                    </div>
+                                    <div class="text-muted" id="latest-weight">
+                                        Đang tải...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card card-sm">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <span class="bg-success text-white avatar">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="icon icon-tabler icon-tabler-calculator" width="24" height="24"
+                                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                            <path
+                                                d="M4 7m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" />
+                                            <path d="M8 11h8v2h-8z" />
+                                            <path d="M8 15h2" />
+                                            <path d="M14 15h2" />
+                                            <path d="M10 7v-2" />
+                                            <path d="M14 7v-2" />
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="col">
+                                    <div class="font-weight-medium">
+                                        Chỉ số BMI
+                                    </div>
+                                    <div class="text-muted" id="latest-bmi">
+                                        --
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="page-wrapper">
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="row row-deck row-cards">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h3 class="card-title">Biểu đồ tổng quan</h3>
+                                    <div class="chart-holder" id="chart-wrapper">
+                                        <div id="chart-skeleton" class="skeleton"></div>
+                                        <div id="chart-health-metrics" class="chart-lg"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card hoverable mt-3 sidebar-sticky">
+                                <div class="card-header">
+                                    <h3 class="card-title">Thêm chỉ số hôm nay</h3>
+                                </div>
+                                <div class="card-body">
+                                    <form id="add-metric-form">
+                                        <div class="mb-3">
+                                            <label class="form-label required">Ngày</label>
+                                            <input type="date" class="form-control" id="metric_date" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label required">Cân nặng (kg)</label>
+                                            <input type="number" step="0.1" class="form-control"
+                                                placeholder="Ví dụ: 68.5" id="weight_kg" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label required">Chiều cao (cm)</label>
+                                            <input type="number" step="0.1" class="form-control"
+                                                placeholder="Ví dụ: 170" id="user_height_cm" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Huyết áp (Tâm thu / Tâm trương)</label>
+                                            <div class="row g-2">
+                                                <div class="col">
+                                                    <input type="number" class="form-control"
+                                                        placeholder="Tâm thu, ví dụ: 120" id="systolic_bp" required>
+                                                </div>
+                                                <div class="col">
+                                                    <input type="number" class="form-control"
+                                                        placeholder="Tâm trương, ví dụ: 80" id="diastolic_bp" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label required">Nhịp tim (bpm)</label>
+                                            <input type="number" class="form-control" placeholder="Ví dụ: 72"
+                                                id="heart_rate" required>
+                                        </div>
+                                        <div class="d-flex">
+                                            <button type="submit" class="btn btn-primary w-100">Lưu lại</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="card hoverable mt-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="fw-bold">Mục tiêu</div>
+                                            <div class="text-secondary small">Cân nặng / Huyết áp</div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary" id="btn-edit-goals">Sửa</button>
+                                    </div>
+                                    <div class="mt-2 small" id="goals-display">Đang tải…</div>
+                                    <div class="mt-2 small">Chuỗi ngày liên tiếp: <span id="streak-count">0</span> 🔥
+                                    </div>
+
+                                    <!-- Toggle nhắc hằng ngày, đẹp & cân hàng -->
+                                    <div class="notif-row mt-3">
+                                        <div class="notif-left">
+                                            <span class="avatar avatar-sm" style="background:linear-gradient(135deg,#fdd,#fee);
+                 display:inline-flex;align-items:center;justify-content:center;">
+                                                <!-- icon chuông -->
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18"
+                                                    height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path d="M10 5a2 2 0 1 1 4 0" />
+                                                    <path d="M6 8a6 6 0 1 1 12 0c0 7 3 6 3 8H3c0-2 3-1 3-8" />
+                                                    <path d="M7 21a5 5 0 0 0 10 0" />
+                                                </svg>
+                                            </span>
+                                            <div class="notif-text">
+                                                <div class="fw-medium">Nhắc hằng ngày</div>
+                                                <div class="text-secondary small">Giờ: <span
+                                                        id="notif-time-label">20:00</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="form-check form-switch d-flex align-items-center">
+                                            <input class="form-check-input" type="checkbox" id="notif-toggle">
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- <footer class="footer footer-transparent d-print-none">
+                <div class="container-xl">
+                    <div class="row text-center align-items-center flex-row-reverse">
+                        <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                            <ul class="list-inline list-inline-dots mb-0">
+                                <li class="list-inline-item">
+                                    Copyright &copy; 2025. All rights reserved.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </footer> -->
+        </div>
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3 class="card-title">Cài đặt</h3>
+            </div>
+            <!-- <div class="card-body">
+        <form id="settings-form">
+            <div class="mb-3">
+                <label class="form-label">Chiều cao của bạn (cm)</label>
+                <input type="number" class="form-control" id="user_height_cm" placeholder="Ví dụ: 170">
+            </div>
+            <div class="d-flex">
+                <button type="submit" class="btn btn-secondary w-100">Lưu Chiều cao</button>
+            </div>
+        </form>
+    </div> -->
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Lịch sử chi tiết</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="table card-table table-vcenter text-nowrap datatable">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Cân nặng (kg)</th>
+                                <th>Chiều cao</th>
+                                <th>Huyết áp (Tâm thu/Tâm trương)</th>
+                                <th>Nhịp tim (bpm)</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metrics-table-body">
+                            <tr id="table-skeleton">
+                                <td colspan="6">
+                                    <div class="skeleton" style="height:24px;"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/js/tabler.min.js"></script>
+
+    <!-- Quan trọng: auth-guard phải chạy TRƯỚC app.js và không defer -->
+    <script src="js/auth-guard.js"></script>
+
+    <!-- app.js defer để đợi DOM parse xong và có thêm thời gian cho me-check -->
+    <script src="js/app.js" defer></script>
+    <script>
+        (function () {
+            const TOGGLE = document.getElementById('notif-toggle');
+            const LABEL = document.getElementById('notif-time-label');
+            const STORAGE_KEY = 'healthtracker_notif_enabled';
+            const STORAGE_TIME = 'healthtracker_notif_time'; // HH:mm, mặc định 20:00
+
+            // — helpers —
+            function parseHHMM(s) { const [h, m] = s.split(':').map(Number); return { h: h || 20, m: m || 0 }; }
+            function scheduleReminderLoop() {
+                const t = localStorage.getItem(STORAGE_TIME) || '20:00';
+                const { h, m } = parseHHMM(t);
+                const now = new Date();
+                const target = new Date();
+                target.setHours(h, m, 0, 0);
+                if (target <= now) target.setDate(target.getDate() + 1);
+                const ms = target - now;
+                window.__notifTimer && clearTimeout(window.__notifTimer);
+                window.__notifTimer = setTimeout(() => {
+                    new Notification('Health Tracker', { body: 'Đến giờ nhập chỉ số hôm nay! 💪' });
+                    scheduleReminderLoop(); // lặp ngày tiếp theo
+                }, ms);
+            }
+
+            async function enableNotif() {
+                if (!('Notification' in window)) { alert('Trình duyệt không hỗ trợ Notifications.'); return false; }
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') { TOGGLE.checked = false; return false; }
+                localStorage.setItem(STORAGE_KEY, '1');
+                scheduleReminderLoop();
+                return true;
+            }
+            function disableNotif() {
+                localStorage.removeItem(STORAGE_KEY);
+                window.__notifTimer && clearTimeout(window.__notifTimer);
+            }
+
+            // — init UI —
+            LABEL.textContent = localStorage.getItem(STORAGE_TIME) || '20:00';
+            const enabled = localStorage.getItem(STORAGE_KEY) === '1';
+            TOGGLE.checked = enabled;
+
+            // Nếu đã bật trước đó, lên lịch lại (sau reload)
+            if (enabled && Notification.permission === 'granted') scheduleReminderLoop();
+
+            // — events —
+            TOGGLE.addEventListener('change', async () => {
+                if (TOGGLE.checked) { await enableNotif(); }
+                else { disableNotif(); }
+            });
+
+            // (tuỳ chọn) click vào giờ để đổi giờ nhanh
+            LABEL.style.cursor = 'pointer';
+            LABEL.title = 'Bấm để đổi giờ';
+            LABEL.addEventListener('click', () => {
+                const cur = localStorage.getItem(STORAGE_TIME) || '20:00';
+                const next = prompt('Nhập giờ HH:mm (24h):', cur);
+                if (!next) return;
+                if (!/^\d{1,2}:\d{2}$/.test(next)) { alert('Định dạng không hợp lệ.'); return; }
+                localStorage.setItem(STORAGE_TIME, next);
+                LABEL.textContent = next;
+                if (TOGGLE.checked && Notification.permission === 'granted') scheduleReminderLoop();
+            });
+        })();
+    </script>
+
+
+    <!-- Modal đổi mật khẩu -->
+    <div class="modal" id="modal-change-pass" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-2xl">
+                <div class="modal-header">
+                    <h5 class="modal-title">Đổi mật khẩu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label">Mật khẩu hiện tại</label>
+                        <input id="cur-pass" type="password" class="form-control" placeholder="••••••••">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Mật khẩu mới</label>
+                        <input id="new-pass" type="password" class="form-control" placeholder="ít nhất 8 ký tự">
+                    </div>
+                    <div id="change-pass-toast" class="text-danger mt-2" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-link" data-bs-dismiss="modal">Huỷ</button>
+                    <button class="btn btn-primary" id="do-change-pass">Cập nhật</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (async function () {
+            // Lấy info từ /api/auth/me.php (auth-guard đã gọi; dùng lại nếu cần)
+            try {
+                const meRes = await fetch('/api/auth/me.php', { credentials: 'include' });
+                const me = await meRes.json();
+                if (me?.user) {
+                    const n = (me.user.full_name || 'User').trim();
+                    document.getElementById('user-fullname').textContent = n;
+                    document.getElementById('user-email').textContent = me.user.email || '';
+                    document.getElementById('avatar-initial').textContent = (n[0] || 'U').toUpperCase();
+                }
+            } catch { }
+
+            // Xuất CSV
+            document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+                const url = '/api/user/metrics/export_csv.php';
+                window.open(url, '_blank');
+            });
+
+            // Đổi mật khẩu (mở modal)
+            const modalEl = document.getElementById('modal-change-pass');
+            const showModal = () => bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            document.getElementById('btn-change-password')?.addEventListener('click', showModal);
+
+            // Thực hiện đổi mật khẩu
+            document.getElementById('do-change-pass')?.addEventListener('click', async () => {
+                const current_password = document.getElementById('cur-pass').value;
+                const new_password = document.getElementById('new-pass').value;
+                const toast = document.getElementById('change-pass-toast');
+
+                try {
+                    const res = await fetch('/api/auth/change_password.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ current_password, new_password })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Đổi mật khẩu thất bại.');
+                    toast.style.display = 'block'; toast.style.color = 'var(--tblr-success)'; toast.textContent = 'Đã cập nhật mật khẩu.';
+                    setTimeout(() => bootstrap.Modal.getInstance(modalEl).hide(), 600);
+                } catch (e) {
+                    toast.style.display = 'block'; toast.style.color = 'var(--tblr-danger)'; toast.textContent = e.message;
+                }
+            });
+
+            // Logout
+            document.getElementById('btn-logout')?.addEventListener('click', async () => {
+                await fetch('/api/auth/logout.php', { credentials: 'include' });
+                location.href = '/auth/login.html?next=/';
+            });
+        })();
+    </script>
+    <!-- Modal cập nhật mục tiêu -->
+    <div class="modal" id="modal-goals" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-2xl">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cập nhật mục tiêu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="goal-weight">Cân nặng (kg)</label>
+                            <input class="form-control" id="goal-weight" inputmode="decimal" placeholder="e.g. 65">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label" for="goal-sys">HA Tâm thu</label>
+                            <input class="form-control" id="goal-sys" inputmode="numeric" placeholder="e.g. 120">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label" for="goal-dia">HA Tâm trương</label>
+                            <input class="form-control" id="goal-dia" inputmode="numeric" placeholder="e.g. 80">
+                        </div>
+                    </div>
+                    <div id="goals-toast" class="text-danger mt-2" style="display:none;"></div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-link" data-bs-dismiss="modal">Huỷ</button>
+                    <button class="btn btn-primary" id="do-save-goals">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (async function () {
+            async function loadGoals() {
+                const r = await fetch('/api/user/goals/get.php', { credentials: 'include' });
+                const g = await r.json();
+                const txt = [
+                    g.weight_goal ? `Cân nặng: ${g.weight_goal}kg` : null,
+                    (g.bp_goal_sys && g.bp_goal_dia) ? `HA: ${g.bp_goal_sys}/${g.bp_goal_dia} mmHg` : null
+                ].filter(Boolean).join(' • ');
+                const el = document.getElementById('goals-display');
+                if (el) el.textContent = txt || 'Chưa đặt mục tiêu';
+                document.getElementById('goal-weight')?.setAttribute('value', g.weight_goal || '');
+                document.getElementById('goal-sys')?.setAttribute('value', g.bp_goal_sys || '');
+                document.getElementById('goal-dia')?.setAttribute('value', g.bp_goal_dia || '');
+            }
+            async function loadStreak() {
+                const r = await fetch('/api/user/metrics/streaks.php', { credentials: 'include' });
+                const s = await r.json();
+                const el = document.getElementById('streak-count');
+                if (el) el.textContent = s.streak ?? 0;
+            }
+
+            document.getElementById('btn-edit-goals')?.addEventListener('click', () => {
+                const modal = document.getElementById('modal-goals');
+                bootstrap.Modal.getOrCreateInstance(modal).show();
+            });
+
+            document.getElementById('do-save-goals')?.addEventListener('click', async () => {
+                const payload = {
+                    weight_goal: document.getElementById('goal-weight').value.trim(),
+                    bp_goal_sys: document.getElementById('goal-sys').value.trim(),
+                    bp_goal_dia: document.getElementById('goal-dia').value.trim()
+                };
+                const toast = document.getElementById('goals-toast');
+                try {
+                    const res = await fetch('/api/user/goals/update.php', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include', body: JSON.stringify(payload)
+                    });
+                    const d = await res.json();
+                    if (!res.ok) throw new Error(d.error || 'Lưu thất bại');
+                    toast.style.display = 'block'; toast.style.color = 'var(--tblr-success)'; toast.textContent = 'Đã lưu mục tiêu.';
+                    await loadGoals();
+                    setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('modal-goals')).hide(), 500);
+                } catch (e) {
+                    toast.style.display = 'block'; toast.style.color = 'var(--tblr-danger)'; toast.textContent = e.message;
+                }
+            });
+
+            await loadGoals();
+            await loadStreak();
+        })();
+    </script>
+
+    <!-- Modal: Đánh giá chỉ số -->
+    <div class="modal" id="modal-health-summary" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-2xl">
+                <div class="modal-header">
+                    <h5 class="modal-title">Đánh giá chỉ số</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Chỉ số</th>
+                                    <th>Giá trị</th>
+                                    <th>Đánh giá</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summary-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="summary-note" class="small text-secondary mt-2"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" data-bs-dismiss="modal">Đã hiểu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</body>
+
+</html>

@@ -1,0 +1,79 @@
+
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Theo dõi sức khỏe</title>
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .form-section {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .dark-mode {
+      background-color: #1e293b;
+      color: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="navbar navbar-expand-md navbar-light bg-primary text-white">
+      <div class="container-xl">
+        <h1 class="navbar-brand m-0 text-white">📊 Theo dõi sức khỏe</h1>
+        <button class="btn btn-sm btn-outline-light" onclick="toggleDarkMode()">🌓 Dark Mode</button>
+      </div>
+    </header>
+    <main class="page-wrapper my-4">
+      <div class="container-xl form-section">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Thêm chỉ số mới</h3>
+          </div>
+          <div class="card-body">
+            <form id="metricForm">
+              <div class="mb-3">
+                <label class="form-label">Tên chỉ số</label>
+                <input type="text" class="form-control" name="name" required placeholder="VD: Cân nặng">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Giá trị</label>
+                <input type="number" class="form-control" name="value" required>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">➕ Thêm dữ liệu</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3 class="card-title">Biểu đồ theo dõi</h3>
+          </div>
+          <div class="card-body">
+            <canvas id="metricChart" height="150"></canvas>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="footer footer-transparent">
+      <div class="container-xl text-center small">
+        &copy; 2025 Dự án theo dõi sức khỏe
+      </div>
+    </footer>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+  </script>
+</body>
+</html>
